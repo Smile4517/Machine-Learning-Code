@@ -1,4 +1,4 @@
-%Machine learning Code for classifying Individual Invasions
+% Machine Learning Code Practice
 
 clearvars 
 outputfolder = uigetdir('C:\Users\Owner\OneDrive\Desktop\Stoll Fellowship Code\','Where would you like to store the converted data?');% Enter output folder
@@ -23,58 +23,64 @@ total_num_M = numel(filenames_M);
 
 % loop to delete column which holds the amoeboid index
 for p = 1: total_num_A
- table_A = load(fullfile(Invasion_A_folder, filenames_A(p).name));
+    table_A = load(fullfile(Invasion_A_folder, filenames_A(p).name));
     table_A = struct2table(table_A);
-    stats_A_invasion_table = table_A.stats_A_invasion_table;
+    stats_A_invasion_table_new = table_A.stats_A_invasion_table; %holds data to concatenate
+    
     if p == 1
-    stats_A_invasion_table_classify = removevars(stats_A_invasion_table, {'amoeboid_index', 'Centroid', 'BoundingBox', 'SubarrayIdx','ConvexHull','ConvexImage', 'Image','FilledImage','Extrema', 'PixelIdxList','PixelList','MinFeretCoordinates', 'MaxFeretCoordinates'});
+    stats_A_invasion_table_first = removevars(stats_A_invasion_table_new, {'amoeboid_index', 'Centroid', 'BoundingBox', 'SubarrayIdx','ConvexHull','ConvexImage', 'Image','FilledImage','Extrema', 'PixelIdxList','PixelList','MinFeretCoordinates', 'MaxFeretCoordinates'});
+    stats_A_invasion_table_current = stats_A_invasion_table_first;
     end
     
-    if p > 1
-       stats_A_invasion_table = table_A.stats_A_invasion_table; 
-       stats_A_invasion_table = removevars(stats_A_invasion_table, {'amoeboid_index', 'Centroid', 'BoundingBox', 'SubarrayIdx','ConvexHull','ConvexImage', 'Image','FilledImage','Extrema', 'PixelIdxList','PixelList','MinFeretCoordinates', 'MaxFeretCoordinates'});
-       stats_A_invasion_table = vertcat(stats_A_invasion_table, stats_A_invasion_table_classify);
+    if p == 2
+       stats_A_invasion_table_new = removevars(stats_A_invasion_table_new, {'amoeboid_index', 'Centroid', 'BoundingBox', 'SubarrayIdx','ConvexHull','ConvexImage', 'Image','FilledImage','Extrema', 'PixelIdxList','PixelList','MinFeretCoordinates', 'MaxFeretCoordinates'});
+       stats_A_invasion_table_current = vertcat(stats_A_invasion_table_new, stats_A_invasion_table_first);
+    end 
+    
+    if p > 2
+       stats_A_invasion_table_new = removevars(stats_A_invasion_table_new, {'amoeboid_index', 'Centroid', 'BoundingBox', 'SubarrayIdx','ConvexHull','ConvexImage', 'Image','FilledImage','Extrema', 'PixelIdxList','PixelList','MinFeretCoordinates', 'MaxFeretCoordinates'}); 
+       stats_A_invasion_table_current = vertcat(stats_A_invasion_table_current, stats_A_invasion_table_new);
+    end
+    
+    if total_num_A == 1
+        stats_A_invasion_table = stats_A_invasion_table_classify;
     end 
 end
-% loop to delete mesenchymal index column
+
 for e = 1: total_num_M
     table_M = load(fullfile(Invasion_M_folder, filenames_M(e).name));
     table_M = struct2table(table_M);
-    stats_M_invasion_table = table_M.stats_M_invasion_table;
+    stats_M_invasion_table_new = table_M.stats_M_invasion_table;
+    
     if e == 1
-    stats_M_invasion_table_classify = removevars(stats_M_invasion_table, {'mesenchymal_index', 'Centroid', 'BoundingBox','SubarrayIdx','ConvexHull','ConvexImage', 'Image','FilledImage','Extrema', 'PixelIdxList','PixelList', 'MinFeretCoordinates', 'MaxFeretCoordinates'});
+    stats_M_invasion_table_first = removevars(stats_M_invasion_table_new, {'mesenchymal_index', 'Centroid', 'BoundingBox','SubarrayIdx','ConvexHull','ConvexImage', 'Image','FilledImage','Extrema', 'PixelIdxList','PixelList', 'MinFeretCoordinates', 'MaxFeretCoordinates'});
     end
     
-    if e > 1
-       stats_M_invasion_table = table_M.stats_M_invasion_table; 
-       stats_M_invasion_table = removevars(stats_M_invasion_table, {'mesenchymal_index', 'Centroid', 'BoundingBox', 'SubarrayIdx', 'ConvexHull', 'ConvexImage', 'Image', 'FilledImage', 'Extrema', 'PixelIdxList','PixelList', 'MinFeretCoordinates', 'MaxFeretCoordinates'});
-       stats_M_invasion_table = vertcat(stats_M_invasion_table, stats_M_invasion_table_classify);
+    if e == 2
+       stats_M_invasion_table_new = removevars(stats_M_invasion_table_new, {'mesenchymal_index', 'Centroid', 'BoundingBox', 'SubarrayIdx', 'ConvexHull', 'ConvexImage', 'Image', 'FilledImage', 'Extrema', 'PixelIdxList','PixelList', 'MinFeretCoordinates', 'MaxFeretCoordinates'});
+       stats_M_invasion_table_current = vertcat(stats_M_invasion_table_new, stats_M_invasion_table_first);
     end 
+    
+    if e > 2
+        stats_M_invasion_table_current = vertcat(stats_M_invasion_table_current, stats_M_invasion_table_new);
+    end
     
     if total_num_M == 1
         stats_M_invasion_table = stats_M_invasion_table_classify;
     end 
 end 
 
-individual_invasion_table = vertcat(stats_A_invasion_table, stats_M_invasion_table);
+individual_invasion_table = vertcat(stats_A_invasion_table_current, stats_M_invasion_table_current);
+individual_invasion_table_train = individual_invasion_table(5:9,:);
 individual_invasion_table_test = removevars(individual_invasion_table, {'Classification'});
+individual_invasion_table_testdata = individual_invasion_table_test(1:4,:);
 
-knnmodel = fitcknn(individual_invasion_table_test, "Classification"); % uses a k = 1 as default,
+knnmodel = fitcknn(individual_invasion_table_train, "Classification"); % uses a k = 1 as default,
 %meaning it will use the nearest neighbor to perfom classification. By
 %increasing k, you can make model less sensitive to outliers. Can do that
 %with NumNeighbor
-predictions = predict(knnmodel, individual_invasion_table_test); % will use model to fit the data
-iscorrect = predictions == individual_invasion_table.Classification; % used to evaluate accuracy of model
+predictions = predict(knnmodel, individual_invasion_table_testdata); % will use model to fit the data
+iscorrect = predictions == individual_invasion_table(1:4,:).Classification; % used to evaluate accuracy of model
 accuracy = sum(iscorrect)/(numel(predictions)); % how many were actually correct
-iswrong = predictions ~= individual_invasion_table.Classification ; 
+iswrong = predictions ~= individual_invasion_table(1:4,:).Classification ; 
 misclassrate = sum(iswrong)/numel(predictions);
-
-
-% Can visulalize where model is incorrect through a confusion chart
-confusionchart(testdata.Classification, predictions)
-
-%Add classification column to cell structures
-Table_amoeboid = struct2table(stats_A_invasion, 'AsArray', true);
-Table_Mesenchymal = struct2table(stats_M_invasion, 'AsArray', true);
-Table = vertcat(Table_amoeboid, Table_Mesenchymal);
-
